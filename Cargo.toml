@@ -1,0 +1,15 @@
+[package]
+name = "scun"
+version = "0.1.0"
+authors = ["Tim Biermann <tbier@posteo.de>"]
+edition = "2021"
+
+[dependencies]
+libnotify = "1.0.3"
+regex = { version = "1.10.2", default-features = false }
+
+[profile.release]
+lto = true
+incremental = true
+strip = true
+opt-level = 3
