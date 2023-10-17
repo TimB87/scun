@@ -11,5 +11,7 @@ regex = { version = "1.10.2", default-features = false }
 [profile.release]
 lto = true
 incremental = true
+codegen-units = 1
 strip = true
+panic = "abort"
 opt-level = 3
