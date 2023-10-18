@@ -113,11 +113,19 @@ fn notify_mode(output: Vec<String>) -> Result<(), Box<dyn Error>> {
 }
 
 fn print_mode(output: Vec<String>, submode: Option<String>) -> Result<(), Box<dyn Error>> {
-    let icon: &str = match submode {
-        Some(i) if i == "-i" || i == "--icon" => "󰚰 ",
-        _ => "",
-    };
-    println!("{icon}{}", output.len() - 1);
+    if let Some(sub) = submode {
+        if sub == "-i" || sub == "--icon" {
+            println!("󰚰 {}", output.len() - 1);
+        } else if sub == "-l" || sub == "--long" {
+            for line in output {
+                println!("{}", line);
+            }
+        } else {
+            println!("{}", output.len() - 1);
+        }
+    } else {
+        println!("{}", output.len() - 1);
+    }
 
     Ok(())
 }
