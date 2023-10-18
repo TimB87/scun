@@ -14,7 +14,7 @@
   </div>
 </div>
 
-scun (simple CRUX update notifier) can be used on [CRUX](https://crux.nu) to figure out which ports are installed, check for available updates in your local ports tree and send a notification via libnotify.
+scun (simple CRUX update notifier) can be used on [CRUX](https://crux.nu) to check for available updates in your local ports tree and send a notification via libnotify.
 It can also show the total number of available updates.
 That's it, make your own sandwich!
 
@@ -58,7 +58,6 @@ interval = 60
 [[block.click]]
 button = "left"
 cmd = "/usr/local/bin/scun notify"
-
 ```
 
 ## Screenshots
