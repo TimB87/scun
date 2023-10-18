@@ -25,7 +25,7 @@ fn find_ports_in_repositories(package_name: &str) -> Result<String, Box<dyn Erro
     let repository = "N/A".to_string();
 
     for repo_name in prtdirs {
-        let repo_path = format!("/{}/{}", repo_name, package_name);
+        let repo_path = format!("/{repo_name}/{package_name}");
         if Path::new(&repo_path).exists() {
             // `/usr/ports/` is 11 character long
             return Ok(repo_name[11..].to_string());
@@ -36,7 +36,7 @@ fn find_ports_in_repositories(package_name: &str) -> Result<String, Box<dyn Erro
 }
 
 fn extract_pkgfile_version(port_dir: &str) -> Option<String> {
-    let pkgfile_path = format!("{}/Pkgfile", port_dir);
+    let pkgfile_path = format!("{port_dir}/Pkgfile");
     if !Path::new(&pkgfile_path).exists() {
         return None;
     }
@@ -48,7 +48,7 @@ fn extract_pkgfile_version(port_dir: &str) -> Option<String> {
     let version = match version_regex.captures(&pkgfile_content) {
         Some(captures) => captures.get(1).map(|m| m.as_str()).unwrap_or(""),
         None => {
-            eprintln!("Failed to extract version from Pkgfile for: {}", port_dir);
+            eprintln!("Failed to extract version from Pkgfile for: {port_dir}");
             ""
         }
     };
@@ -58,7 +58,7 @@ fn extract_pkgfile_version(port_dir: &str) -> Option<String> {
         .map(|m| m.as_str())
         .unwrap_or("");
 
-    Some(format!("{}-{}", version, release))
+    Some(format!("{version}-{release}"))
 }
 
 fn list_installed_packages(filename: &str) -> Result<Vec<PackageInfo>, Box<dyn Error>> {
@@ -118,7 +118,7 @@ fn print_mode(output: Vec<String>, submode: Option<String>) -> Result<(), Box<dy
             println!("󰚰 {}", output.len() - 1);
         } else if sub == "-l" || sub == "--long" {
             for line in output {
-                println!("{}", line);
+                println!("{line}");
             }
         } else {
             println!("{}", output.len() - 1);
@@ -141,9 +141,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     for (name, version) in &packages {
         let repository = find_ports_in_repositories(name)?;
-        let available_version =
-            extract_pkgfile_version(&format!("/usr/ports/{}/{}", repository, name))
-                .unwrap_or("N/A".to_string());
+        let available_version = extract_pkgfile_version(&format!("/usr/ports/{repository}/{name}"))
+            .unwrap_or("N/A".to_string());
 
         if version.as_ref().map_or("unknown", |v| v) != available_version {
             output.push(format!(
@@ -158,7 +157,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
-        eprintln!("Usage: scun [notify|print]");
+        let message = "Usage: scun [notify|print]";
+        eprintln!("{message}");
         process::exit(1);
     }
 
@@ -174,7 +174,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     } else if mode == "print" {
         print_mode(output, submode)?;
     } else {
-        eprintln!("Invalid mode: {}. Use 'notify' or 'print'.", mode);
+        eprintln!("Invalid mode: {mode}. Use 'notify' or 'print'.");
         process::exit(1);
     }
 
