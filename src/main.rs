@@ -112,8 +112,12 @@ fn notify_mode(output: Vec<String>) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn print_mode(output: Vec<String>) -> Result<(), Box<dyn Error>> {
-    println!("{}", output.len() - 1);
+fn print_mode(output: Vec<String>, submode: Option<String>) -> Result<(), Box<dyn Error>> {
+    let icon: &str = match submode {
+        Some(i) if i == "-i" || i == "--icon" => "󰚰 ",
+        _ => "",
+    };
+    println!("{icon}{}", output.len() - 1);
 
     Ok(())
 }
@@ -145,17 +149,22 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let args: Vec<String> = env::args().collect();
 
-    if args.len() != 2 {
+    if args.len() < 2 {
         eprintln!("Usage: scun [notify|print]");
         process::exit(1);
     }
 
     let mode = &args[1];
+    let submode = match args.len() {
+        0..=2 => Option::None,
+        3 => Some(args[2].to_string()),
+        _ => Option::None,
+    };
 
     if mode == "notify" {
         notify_mode(output)?;
     } else if mode == "print" {
-        print_mode(output)?;
+        print_mode(output, submode)?;
     } else {
         eprintln!("Invalid mode: {}. Use 'notify' or 'print'.", mode);
         process::exit(1);
