@@ -157,7 +157,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
-        let message = "Usage: scun [notify|print]";
+        let message = "Usage: scun [notify|print]
+notify: send a list via libnotify
+print: prints the number of available updates
+    --icon|-i: adds an icon
+    --long|-l: prints the whole list";
         eprintln!("{message}");
         process::exit(1);
     }
