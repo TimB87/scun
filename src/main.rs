@@ -136,7 +136,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     output.push(format!(
         "{:<20} {:<15} {:<15}",
-        "Port", "Version", "Available Version"
+        "Port", "Version", "Available"
     ));
 
     for (name, version) in &packages {
