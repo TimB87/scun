@@ -24,20 +24,20 @@ jobs:
           - nightly
         target:
           - x86_64-unknown-linux-gnu
-          - aarch64-unknown-linux-gnu
-          - x86_64-apple-darwin
-          - armv7-unknown-linux-gnueabihf
-          - arm-unknown-linux-gnueabihf
-          - arm-unknown-linux-gnueabi
+          #- aarch64-unknown-linux-gnu
+          #- x86_64-apple-darwin
+          #- armv7-unknown-linux-gnueabihf
+          #- arm-unknown-linux-gnueabihf
+          #- arm-unknown-linux-gnueabi
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      #- name: Install toolchain
-      #  run: |
-      #    rustup update ${{ matrix.toolchain }} && \
-      #    rustup default ${{ matrix.toolchain }} && \
-      #    rustup target add ${{ matrix.target }}
+      - name: Install toolchain
+        run: |
+          rustup update ${{ matrix.toolchain }} && \
+          rustup default ${{ matrix.toolchain }} && \
+          rustup target add ${{ matrix.target }} --toolchain ${{ matrix.toolchain }}
 
       - name: Install libnotify
         run: |
@@ -47,14 +47,14 @@ jobs:
       - name: Use cache
         uses: Swatinem/rust-cache@v2
 
-      #- name: Build with ${{ matrix.toolchain }}
-      #  run: cargo build --verbose --target ${{ matrix.target }}
+      - name: Build with ${{ matrix.toolchain }} for ${{ matrix.toolchain }}
+        run: cargo build --verbose --target ${{ matrix.target }}
 
       # there are no tests
       #- name: Check with ${{ matrix.toolchain }}
       #  run: cargo check --verbose
 
-      - name: Compile
-        uses: rust-build/rust-build.action@v1.4.3
-        with:
-          RUSTTARGET: ${{ matrix.target }}
+      #- name: Compile
+      #  uses: rust-build/rust-build.action@v1.4.3
+      #  with:
+      #    RUSTTARGET: ${{ matrix.target }}
