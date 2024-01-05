@@ -5,6 +5,7 @@ authors = ["Tim Biermann <tbier@posteo.de>"]
 edition = "2021"
 
 [dependencies]
+lazy_static = "1.4.0"
 libnotify = "1.0.3"
 regex = { version = "1.10.2", default-features = false }
 

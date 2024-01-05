@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use regex::Regex;
 use std::env;
 use std::error::Error;
@@ -16,7 +17,7 @@ fn find_ports_in_repositories(package_name: &str) -> Result<String, Box<dyn Erro
 
     for line in reader.lines().flatten() {
         if line.starts_with("prtdir ") {
-            let prtdir = line.trim().to_string();
+            let prtdir = line.trim();
             // `prtdir ` is 7 characters long
             prtdirs.push(prtdir[7..].to_string());
         }
@@ -35,6 +36,11 @@ fn find_ports_in_repositories(package_name: &str) -> Result<String, Box<dyn Erro
     Ok(repository)
 }
 
+lazy_static! {
+    static ref VERSION_REGEX: Regex = Regex::new(r#"version=(.+)"#).unwrap();
+    static ref RELEASE_REGEX: Regex = Regex::new(r#"release=(.+)"#).unwrap();
+}
+
 fn extract_pkgfile_version(port_dir: &str) -> Option<String> {
     let pkgfile_path = format!("{port_dir}/Pkgfile");
     if !Path::new(&pkgfile_path).exists() {
@@ -42,17 +48,15 @@ fn extract_pkgfile_version(port_dir: &str) -> Option<String> {
     }
 
     let pkgfile_content = std::fs::read_to_string(pkgfile_path).ok()?;
-    let version_regex = Regex::new(r#"version=(.+)"#).ok()?;
-    let release_regex = Regex::new(r#"release=(.+)"#).ok()?;
 
-    let version = match version_regex.captures(&pkgfile_content) {
+    let version = match VERSION_REGEX.captures(&pkgfile_content) {
         Some(captures) => captures.get(1).map(|m| m.as_str()).unwrap_or(""),
         None => {
             eprintln!("Failed to extract version from Pkgfile for: {port_dir}");
             ""
         }
     };
-    let release = release_regex
+    let release = RELEASE_REGEX
         .captures(&pkgfile_content)?
         .get(1)
         .map(|m| m.as_str())
@@ -82,7 +86,9 @@ fn list_installed_packages(filename: &str) -> Result<Vec<PackageInfo>, Box<dyn E
         } else if current_package.is_none() {
             current_package = Some((line, None));
         } else {
-            let package = current_package.as_mut().unwrap();
+            let package = current_package
+                .as_mut()
+                .expect("Error: no package was evaluated");
             if package.1.is_none() {
                 package.1 = Some(line);
             }
@@ -102,11 +108,17 @@ fn list_installed_packages(filename: &str) -> Result<Vec<PackageInfo>, Box<dyn E
 }
 
 fn notify_mode(output: Vec<String>) -> Result<(), Box<dyn Error>> {
-    libnotify::init("scun").unwrap();
+    if let Err(e) = libnotify::init("scun") {
+        eprintln!("Failed to initialize libnotify: {}", e);
+        return Err(e.into());
+    }
     let notification_body: String = output.join("\n");
     let n = libnotify::Notification::new("Port Updates", &notification_body as &str, None);
     n.set_timeout(5000);
-    n.show().unwrap();
+    if let Err(e) = n.show() {
+        eprintln!("Failed to show notification: {}", e);
+        return Err(e.into());
+    }
     libnotify::uninit();
 
     Ok(())
@@ -157,11 +169,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
-        let message = "Usage: scun [notify|print]
+        let message = r#"Usage: scun [notify|print]
 notify: send a list via libnotify
 print: prints the number of available updates
     --icon|-i: adds an icon
-    --long|-l: prints the whole list";
+    --long|-l: prints the whole list"#;
         eprintln!("{message}");
         process::exit(1);
     }
@@ -173,9 +185,9 @@ print: prints the number of available updates
         _ => Option::None,
     };
 
-    if mode == "notify" {
+    if mode == "notify" || mode == "n" {
         notify_mode(output)?;
-    } else if mode == "print" {
+    } else if mode == "print" || mode == "p" {
         print_mode(output, submode)?;
     } else {
         eprintln!("Invalid mode: {mode}. Use 'notify' or 'print'.");
