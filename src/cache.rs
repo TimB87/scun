@@ -22,9 +22,9 @@ pub enum CacheError {
 impl fmt::Display for CacheError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            CacheError::Io(e) => write!(f, "IO error: {}", e),
-            CacheError::Serde(e) => write!(f, "Serialization error: {}", e),
-            CacheError::SystemTime(e) => write!(f, "System time error: {}", e),
+            CacheError::Io(e) => write!(f, "IO error: {e}"),
+            CacheError::Serde(e) => write!(f, "Serialization error: {e}"),
+            CacheError::SystemTime(e) => write!(f, "System time error: {e}"),
         }
     }
 }
@@ -51,7 +51,6 @@ impl From<std::time::SystemTimeError> for CacheError {
 
 pub static CACHE_FILE_PATH: Lazy<PathBuf> = Lazy::new(|| {
     xdg::BaseDirectories::new()
-        .expect("Failed to create BaseDirectories")
         .place_cache_file("scun.json")
         .expect("Failed to create cache file path")
 });
@@ -82,8 +81,7 @@ pub fn is_cache_valid(cache_data: &CacheData) -> bool {
             if let Ok(mod_time_secs) = mod_time.duration_since(UNIX_EPOCH) {
                 // Check if the stored modification time is older than the current modification time
                 return cache_data
-                    .db_mod_time
-                    .map_or(false, |db_mod_time| db_mod_time >= mod_time_secs.as_secs());
+                    .db_mod_time.is_some_and(|db_mod_time| db_mod_time >= mod_time_secs.as_secs());
             }
         }
     }

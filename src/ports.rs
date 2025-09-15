@@ -2,13 +2,14 @@ use crate::*;
 use once_cell::sync::Lazy;
 use std::fs;
 use std::io::{BufRead, BufReader};
-use std::sync::Mutex;
 use std::time::UNIX_EPOCH;
 
 pub type PackageInfo = (String, Option<String>);
 
-pub static INSTALLED_PACKAGES: Lazy<Mutex<Vec<PackageInfo>>> = Lazy::new(|| {
-    Mutex::new({
+use std::sync::RwLock;
+
+pub static INSTALLED_PACKAGES: Lazy<RwLock<Vec<PackageInfo>>> = Lazy::new(|| {
+    RwLock::new({
         let db_mod_time = fs::metadata("/var/lib/pkg/db")
             .map_err(|e| Box::new(e) as Box<dyn Error>)
             .and_then(|metadata| {
@@ -23,11 +24,10 @@ pub static INSTALLED_PACKAGES: Lazy<Mutex<Vec<PackageInfo>>> = Lazy::new(|| {
             })
             .map(|duration| duration.as_secs())
             .unwrap_or(0);
-
         match read_cache_from_file(&CACHE_FILE_PATH) {
             Ok(contents) if is_cache_valid(&contents) => contents.data,
             _ => fetch_installed_packages(db_mod_time).unwrap_or_else(|e| {
-                eprintln!("Error fetching installed packages: {}", e);
+                eprintln!("Error fetching installed packages: {e}");
                 Vec::new()
             }),
         }
@@ -65,7 +65,7 @@ pub fn find_ports_in_repositories(
 }
 
 pub fn extract_pkgfile_version(port_dir: &str) -> Option<String> {
-    let pkgfile_path = format!("{}/Pkgfile", port_dir);
+    let pkgfile_path = format!("{port_dir}/Pkgfile");
     let pkgfile_content = std::fs::read_to_string(pkgfile_path).ok()?;
 
     let mut version = None;
@@ -77,9 +77,12 @@ pub fn extract_pkgfile_version(port_dir: &str) -> Option<String> {
         } else if line.starts_with("release=") {
             release = line.split('=').nth(1)?.trim().to_string().into();
         }
+        if version.is_some() && release.is_some() {
+            break;
+        }
     }
 
-    version.and_then(|v| release.map(|r| format!("{}-{}", v, r)))
+    version.and_then(|v| release.map(|r| format!("{v}-{r}")))
 }
 
 fn list_installed_packages(filename: &str) -> Result<Vec<PackageInfo>, CacheError> {
@@ -98,8 +101,7 @@ fn list_installed_packages(filename: &str) -> Result<Vec<PackageInfo>, CacheErro
             packages.push((name, Some(version)));
 
             while lines_iter
-                .peek()
-                .map_or(false, |line| !line.as_ref().unwrap().trim().is_empty())
+                 .peek().is_some_and(|line| !line.as_ref().unwrap().trim().is_empty())
             {
                 lines_iter.next(); // ignore footprint
             }
