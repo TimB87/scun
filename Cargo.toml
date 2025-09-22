@@ -7,7 +7,7 @@ edition = "2021"
 [dependencies]
 once_cell = "1.21.3"
 libnotify = "1.0.3"
-serde = { version = "1.0.223", features = ["derive"] }
+serde = { version = "1.0.226", features = ["derive"] }
 serde_json = "1.0.145"
 xdg = "3.0.0"
 bincode = "2.0.1"
