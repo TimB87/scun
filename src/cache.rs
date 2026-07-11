@@ -1,9 +1,12 @@
-use crate::*;
+use crate::ports::PackageInfo;
 use core::fmt;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use std::io;
-use std::io::Write;
+use std::error::Error;
+use std::fs::File;
+use std::io::{self, BufReader, BufWriter, Write};
+use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Serialize, Deserialize)]
 pub struct CacheData {
@@ -49,7 +52,7 @@ impl From<std::time::SystemTimeError> for CacheError {
     }
 }
 
-pub static CACHE_FILE_PATH: Lazy<PathBuf> = Lazy::new(|| {
+pub static CACHE_FILE_PATH: LazyLock<PathBuf> = LazyLock::new(|| {
     xdg::BaseDirectories::new()
         .place_cache_file("scun.json")
         .expect("Failed to create cache file path")
@@ -62,38 +65,27 @@ pub fn save_cache_to_file(
 ) -> Result<(), CacheError> {
     let cache_data = CacheData {
         data: data.to_owned(),
-        timestamp: SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_secs())
-            .ok(),
+        timestamp: Some(current_timestamp()?),
         db_mod_time: Some(db_mod_time),
     };
 
-    let json = serde_json::to_string(&cache_data)?;
-    let mut file = File::create(cache_path)?;
-    file.write_all(json.as_bytes())?;
+    let file = File::create(cache_path)?;
+    let mut writer = BufWriter::new(file);
+    serde_json::to_writer(&mut writer, &cache_data)?;
+    writer.flush()?;
     Ok(())
 }
 
-pub fn is_cache_valid(cache_data: &CacheData) -> bool {
-    if let Ok(metadata) = std::fs::metadata("/var/lib/pkg/db") {
-        if let Ok(mod_time) = metadata.modified() {
-            if let Ok(mod_time_secs) = mod_time.duration_since(UNIX_EPOCH) {
-                // Check if the stored modification time is older than the current modification time
-                return cache_data
-                    .db_mod_time.is_some_and(|db_mod_time| db_mod_time >= mod_time_secs.as_secs());
-            }
-        }
-    }
-    false
+fn current_timestamp() -> Result<u64, CacheError> {
+    Ok(SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs())
 }
 
-pub fn read_cache_from_file(cache_path: &Path) -> Result<CacheData, Box<dyn Error>> {
-    if let Ok(file) = File::open(cache_path) {
-        let reader = BufReader::new(file);
-        if let Ok(json) = serde_json::from_reader(reader) {
-            return Ok(json);
-        }
-    }
-    Err("Cache file not found or invalid".into())
+pub fn is_cache_valid(cache_data: &CacheData, db_mod_time: u64) -> bool {
+    cache_data.db_mod_time == Some(db_mod_time)
+}
+
+pub fn read_cache_from_file(cache_path: &Path) -> Result<CacheData, CacheError> {
+    let file = File::open(cache_path)?;
+    let reader = BufReader::new(file);
+    Ok(serde_json::from_reader(reader)?)
 }

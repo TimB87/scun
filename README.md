@@ -43,8 +43,8 @@ It will construct a list of all installed ports which have some form of update a
 
 ## Caveats
 
-There is no intelligent logic in this code, no version comparator or anything.
-This means that an installed port which can't be found in your tree will show up in this list (as `Available Update: "N/A"`) and even downgrades (for whatever reasons) will be displayed.
+Version comparisons are handled by `libversion`.
+Installed packages that are not present in the configured ports tree are skipped.
 
 ## Use case
 
@@ -64,4 +64,3 @@ cmd = "/usr/local/bin/scun notify"
 
 ![Taskbar config](assets/taskbar.png "The custom block configuration")
 ![Notification](assets/notification.png "A very long notification via fnott")
-
